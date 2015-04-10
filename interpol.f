@@ -681,7 +681,7 @@ c      write(*,*) 'xsame,xdiff', xx(isame(1:nsame)), xx(idiff(1:ndiff))
 
       call sort_samevalue(nout,xx,nin,x,nsame,isame
      1     ,jsame,ndiff,idiff,eps)
-      write(*,*) 'nsame,ndiff', nsame, ndiff
+c      write(*,*) 'nsame,ndiff', nsame, ndiff
       if(nsame .ne. 0) then
 
          xxs(1:nsame)=xx(isame(1:nsame))
@@ -803,7 +803,7 @@ c      write(*,*) 'xsame,xdiff', xx(isame(1:nsame)), xx(idiff(1:ndiff))
             else 
                ixx=nlorder+1
             end if
-            write(*,*) 'il,ir,ix,ixx',il,ir,ix,ixx
+c            write(*,*) 'il,ir,ix,ixx',il,ir,ix,ixx
             yy1(i) = y1(ix)
 
             call barycentric_w(norder,x(il:ir),w)

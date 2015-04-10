@@ -18,10 +18,10 @@
     reps=0.32d0
     rkappa = 1.5d0
     delta = 0.5d0
-    nchq = 12
+    nchq = 16
     epsmaxdist = 0.001d0
     itrinity = 1
-    ntpsi=13
+    ntpsi=33
     nttin = 32
     iprintcon =1
     irho=3
