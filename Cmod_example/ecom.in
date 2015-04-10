@@ -1,0 +1,29 @@
+&GSparameter
+    ibtype = 1   ! contour option - 0: Solovev, 1: Miller  2: Numerical, 3: EFIT
+    iptype = 2   ! pressure and current profile - 0: Solovev, 1: Analytic Profile, 2: Numerical, 3: EFIT
+    iptable = 2
+    file_prof = 'Profile.dat'
+    nt1 = 256
+    eps = 1e-14
+    nt2 = 128,
+    nsub = 8,
+    kcheb = 16
+    maxiter = 30
+    R0=0.67d0
+    Z0=0.0d0
+    iscale = 0
+    ifpol =1
+    Fedge = -3.0d0
+    q0=1.0d0
+    reps=0.32d0
+    rkappa = 1.5d0
+    delta = 0.5d0
+    nchq = 12
+    epsmaxdist = 0.001d0
+    itrinity = 1
+    ntpsi=13
+    nttin = 32
+    iprintcon =1
+    irho=3
+   
+/
