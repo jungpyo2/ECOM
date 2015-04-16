@@ -2606,7 +2606,7 @@ c            isort(i)=isortstart+i-1
             ifind = 0
             jj=0
                         
-            do while ((ifind.eq.0) .and. (jj.lt.10)) !find the theta grid which is equispaced as much as possible (not perfectly) 
+            do while ((ifind.eq.0) .and. (jj.lt.1)) !find the theta grid which is equispaced as much as possible (not perfectly) 
                jj=jj+1
                if (jj.eq.1) then
                   do while (thksamp3.gt.tlag(istart)) 
@@ -4355,12 +4355,20 @@ c      epstri= 1.0d-10
  
 
       BpR2(1:nin+1)=(psiRin(1:nin+1)**2.0d0+psiZin(1:nin+1)**2.0d0)
-      temp0(1:nin+1)=1.0d0/
-     1     (((Zin(1:nin+1)-Zmaxis)/(Rin(1:nin+1)-Rmaxis))**2.0d0+1.0d0)
-      temp1(1:nin+1)=-temp0(1:nin+1)*(Zin(1:nin+1)-Zmaxis)
-     1     /(Rin(1:nin+1)-Rmaxis)**2.0d0   !dtheta/dR
-      temp2(1:nin+1)=temp0(1:nin+1)
-     1     /(Rin(1:nin+1)-Rmaxis)   !dtheta/dZ
+!      temp0(1:nin+1)=1.0d0/
+!     1     (((Zin(1:nin+1)-Zmaxis)/(Rin(1:nin+1)-Rmaxis))**2.0d0+1.0d0)
+!      temp1(1:nin+1)=-temp0(1:nin+1)*(Zin(1:nin+1)-Zmaxis)
+!     1     /(Rin(1:nin+1)-Rmaxis)**2.0d0   !dtheta/dR
+!      temp2(1:nin+1)=temp0(1:nin+1)
+!     1     /(Rin(1:nin+1)-Rmaxis)   !dtheta/dZ
+
+
+      temp0(1:nin+1)=(Rin(1:nin+1)-Rmaxis)**2.0d0/
+     1     ((Zin(1:nin+1)-Zmaxis)**2.0d0+(Rin(1:nin+1)-Rmaxis)**2.0d0)
+      temp1(1:nin+1)=-(Zin(1:nin+1)-Zmaxis)/
+     1     ((Zin(1:nin+1)-Zmaxis)**2.0d0+(Rin(1:nin+1)-Rmaxis)**2.0d0)   !dtheta/dR
+      temp2(1:nin+1)=(Rin(1:nin+1)-Rmaxis)/
+     1     ((Zin(1:nin+1)-Zmaxis)**2.0d0+(Rin(1:nin+1)-Rmaxis)**2.0d0)  !dtheta/dZ
 
       temp3(1:nin+1)=dabs((psiRin(1:nin+1)*temp2(1:nin+1)
      1     -psiZin(1:nin+1)*temp1(1:nin+1))/Rin(1:nin+1)) !(grad phi times grad psi) cdot grad theta)
