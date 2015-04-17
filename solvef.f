@@ -318,6 +318,11 @@
 
          do inext = 1, ntot
             psin=1-psii(inext)
+	    if (psin.lt.0.0d0) then
+		psin=0.0d0
+	    else if (psin.gt.1.0d0) then
+		psin=1.0d0
+	    end if
 
             select case (iptype)
             case(0)             ! solovev solution      
@@ -363,6 +368,11 @@
          
          do inext = 1, ntot
             psin=1-psii(inext)
+            if (psin.lt.0.0d0) then
+                psin=0.0d0
+            else if (psin.gt.1.0d0) then
+                psin=1.0d0
+            end if
 
             select case (iptype)
             case(0)             ! solovev solution      
