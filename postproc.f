@@ -451,6 +451,16 @@ c      write(*,*) 'qcon',qcon(1:ncon)
 
       end if
 
+      do i=1,nchq
+           presch(i)=0.0d0
+           do k=1,nchq
+              presch(i)=presch(i)+spxb((k-1)*nchq+i)*pprimch(k)
+           end do
+      end do
+      presch(1:nchq)=presch(1:nchq)/(2.0d0*(lambda))
+
+
+
       if (iecom.eq.2) then   !ECOMQ
 c         if(iqtype.ne.1) then
 c            if (ifpol.eq.0) then
@@ -525,14 +535,6 @@ c     qpsich=-qpsich
     
          close(2)
       else    !ECOM
-
-        do i=1,nchq
-           presch(i)=0.0d0
-           do k=1,nchq
-              presch(i)=presch(i)+spxb((k-1)*nchq+i)*pprimch(k)
-           end do
-        end do
-        presch(1:nchq)=presch(1:nchq)/(2.0d0*(lambda))
 
         open(2,file='ECOM_profiles.out')
          write(2,*) 'normalized psi'
@@ -1115,10 +1117,11 @@ c     1        ,tkappamil,tdeltamil,file_name)
 
       if (iprintEFIT.eq.1) then
 
+         write(*,*) 'before printEFIT'
          call printEfitG (npsi, ncon, qcon, acmcur0)
 c printEfitG (npsi,ncon,cftmq,pprimch,ffprimch,presch,fpolch
 c     1     ,qcon)
-         write(*,*) 'finished printing gfile for EFIT output format'
+         Write(*,*) 'finished printing gfile for EFIT output format'
       end if
 
       return
@@ -1372,8 +1375,8 @@ c            wfpoltmp1=0.2d0  !1.0d0 is better?
          else if (iqconstraint.eq.1) then
             call findFbyFFp1(ncon,lambda,psicon,ffprimnum,
      1           spxb,fedge,fpoltmp2)
-            wfpoltmp1=0.2d0
-c            wfpoltmp1=0.2d0 ! to make fpoltmp1 and fpoltmp2 matched
+            !wfpoltmp1=0.0d0
+            wfpoltmp1=0.2d0 ! to make fpoltmp1 and fpoltmp2 matched
          end if
         
          fpolcon(1:ncon)=wfpoltmp1*fpoltmp1(1:ncon)
@@ -2048,7 +2051,7 @@ c      close(sol_unit)
 
       ima = (0.0d0,1.0d0)
       neqdsk=21
-c      write(*,*) 'EFITin0', npsi,nin,nchq
+      write(*,*) 'EFITin0', npsi,nin,nchq
 c      write(*,*) 'EFITin',pprimch(1:nchq),ffprimch(1:nchq)
 c      write(*,*) 'EFITin',fpolch(1:nchq), presch(1:nchq)
       nw=npsi
@@ -6756,7 +6759,7 @@ c      write(*,*) 'qout',qout
       subroutine findpsioffaxis(nt1, dt, rzdimmin, zc1, dzdtc1, 
      1     wc1,  Roff, Zoff, iexterior, rndm, tndm, psi)
 
-      use arrays, only: nt2, nr, rnd, kcheb, ucoeff
+      use arrays, only: nt2, nr, rnd, kcheb, ucoeff, nsub
       use arrays, only: cftmsub, bnodes, Rmap0, Zmap0
 
       implicit real*8 (a-h,o-z)
@@ -6786,14 +6789,14 @@ c      write(*,*) 'wc1',wc1
       w2pii=-ima*w2pi
 c      write(*,*) 'w0',w0
 c      write(*,*) 'w2pi',w2pi
-      if (isNaN(w0r).or.isNan(w0i)) then
-         psi=-1.0d0
-         rndm=-1.0d0
-         tndm=0.0d0
-         iexterior= 1
+      !if ((isNaN(w0r).eq.1).or.(isNan(w0i).eq.1)) then
+      !   psi=-1.0d0
+      !   rndm=-1.0d0
+      !   tndm=0.0d0
+      !   iexterior= 1
 c         write(*,*) 'exterior point1'
-         return
-      end if
+      !   return
+      !end if
 
       rndm=dsqrt(w0r**2+w0i**2)
       tndm=datan2(w0i,w0r) 
@@ -6839,8 +6842,7 @@ c            write(*,*) 'exterior point4' !make cauchy integral 0
                xch=(rndm-bnodes(isub))/(bnodes(isub+1)-bnodes(isub))
 c               write(*,*) 'very close to origin: smaller than rnd(1)'
                exit
-            end if
-            if ((rnd(i).le.rndm).and.(rnd(i+1).gt.rndm)) then
+            else if((rnd(i).le.rndm).and.(rnd(i+1).gt.rndm)) then
                isub=(i-1)/kcheb+1
                xch=(rndm-bnodes(isub))/(bnodes(isub+1)-bnodes(isub))
                if (xch.gt.1.0d0) then
@@ -6848,24 +6850,31 @@ c               write(*,*) 'very close to origin: smaller than rnd(1)'
                   xch=(rndm-bnodes(isub))/(bnodes(isub+1)-bnodes(isub))
                end if
                exit
+            else if ((rnd(nr).lt.rndm)) then
+               isub=nsub
+               xch=(rndm-bnodes(nsub))/(bnodes(nsub+1)-bnodes(nsub))
+               exit
             end if
          end do
       end if
 
- 
+  
+      write(*,*) 'fine1',isub,xch
       do i=1,kcheb
          do j=1,nt2
             inext=((isub-1)*kcheb+i)+(j-1)*nr
             ucin(j)=ucoeff(inext)
          end do
+         write(*,*) 'fine2',ucin(1:nt2)
          call fcoffth(ucin,nt2,tndm,zout)
          uch(i) = dreal(zout)
       end do
+      write(*,*) 'psi00',uch(1:kcheb)
       call chftransq(chcoeff,uch,kcheb,cftmsub)
       call chfit(xch, kcheb, chcoeff, um)
 
 
-c      write(*,*) 'psi00',uch(1:kcheb),um, Roff
+      write(*,*) 'psi00',uch(1:kcheb),um, Roff
       psi = um*dsqrt(Roff)
 c      write(*,*) 'psi0',psi,rndm,xch !,ucin(1:nt2)
      

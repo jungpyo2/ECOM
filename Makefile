@@ -1,7 +1,7 @@
 # Makefile for Grad Shfranov solver, ECOM
 FC = gfortran
 
-FFLAGS = -O
+FFLAGS = -O3 
 
 all: ECOM
 

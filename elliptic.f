@@ -87,6 +87,7 @@ c     alpha    = Helmholtz coefficient for isolve=0,1,2
       izcp = izc + nth
       itot = izcp + nth
 c
+      write (*,*) 'zw',itot,nth,nth,nr
       allocate(zw(itot))
       allocate(gcoeff(nth))
       allocate(wsave(6*nth+100))

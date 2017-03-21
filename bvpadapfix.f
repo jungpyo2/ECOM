@@ -472,7 +472,8 @@ c------------------------------------------------------------
       real*8 pi
 c      parameter (pi=3.141592653589793238d0)
       real*8 theta(nmxnd), ns(nmxnd), c(nmxnd), chnd01(nmxnd)
-      real*8 psiichq(*), cftm(*), spbx(*), spxb(*), spdef(*)
+      real*8 psiichq(nnd), cftm(nnd), spbx(nnd)
+      real*8 spxb(nnd*nnd), spdef(nnd*nnd)
       real*8 citm(nmxnd,nmxnd)
       real*8 work1(nmxnd), work2(nmxnd)
 c      common /geofn/ theta, ns, c, chnd01

@@ -184,7 +184,7 @@ c      write(*,*) 'rndi, tndi, Rt3i, Zt3i', rndi, tndi, Rt3i, Zt3i
    
       subroutine findmagaxis(rndi, tndi, dpsidri, dpsidti 
      1     ,dpsidrri ,dpsidrti, dpsidtti, Rt3i, Zt3i, psii
-     2     , Rt3m, Zt3m, psim, dpsi2)
+     2     , dpsi2)
 
       use arrays, only: nt2, nr, rnd, kcheb, ucoeff, urcoeff, urrcoeff
       use arrays, only: cftmsub, bnodes, zk, dzdw2k, dzdwW2k, epsmag

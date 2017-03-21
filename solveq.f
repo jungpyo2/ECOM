@@ -482,7 +482,7 @@ c                  write(*,*) 'ptflow',ptflow,p_inext,ptfbyp,pexp
 
       end if
 
-      write(*,*) 'iterataion index =', iiter
+      write(*,*) 'iteration index =', iiter
       do inext = 1, ntot
     
 c         if (fsol(inext).gt.0.0d0) then
@@ -500,6 +500,10 @@ c         end if
       
       bnodestmp(1:nsub+1)=bnodes(1:nsub+1)
 
+      ntheta=nt2
+
+      korder = kcheb
+      write (*,*) 'work1',nsub,korder,ntheta
       call elliptic(nsub,korder,ntheta,rnd,rnd(nr+1),
      1     u,ur,uth,urr,urt,utt,f,blength,bnodestmp,ibc,g)
 
@@ -520,7 +524,7 @@ c         end if
          end if
       end do
 
-      
+      write (*,*) 'work2'
       ! find magnetic axis off the grid if needed
       if ((maxdpsi.lt.dpsistartmag).and.(ifindmagaxis.eq.1)) then
        
@@ -548,7 +552,7 @@ c         end if
          dist2=(Rmaxpsi-Rmap0)**2+(Zmaxpsi-Zmap0)**2
        
       end if
-
+      write (*,*) 'work3'
       psif(1:ntot) = psif(1:ntot)/maxpsi
       if (iconvq.ne.0) then
          if ((iconvq.ne.1).or.(iiter.gt.relaxiter)) then 
@@ -741,7 +745,9 @@ c         write(*,*) 'fpolch', fpolch(1:nchq)
 c         write(*,*) 'pprimch', pprimch(1:nchq)
 c      end if
 
-
+      write (*,*) 'work11',nsub,korder,ntheta
+      ntheta=nt2
+      korder = kcheb 
       do j=1, ntheta
          do i=1, nr
             inext = i + (j-1)*nr

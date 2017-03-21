@@ -25,7 +25,7 @@
       save
       integer *4 i,j,nin,nout,isame
  
-      real *8  x(*), y1(*), xx(*), yy1(*), w(nin-1)
+      real *8  x(*), y1(*), xx(*), yy1(*), w(nin)
       real *8 ltemp, ltemp2
 
 !     find the weights for Barycentric weight 
@@ -738,7 +738,7 @@ c      write(*,*) 'nsame,ndiff', nsame, ndiff
             il=nin-norder+1
          end if
 
-         call barycentric_w(norder,xx(il:ir),w)
+         call barycentric_w(norder,x(il:ir),w)
          ltemp=0.0
          ltemp2=0.0
  
