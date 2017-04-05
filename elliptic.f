@@ -45,6 +45,7 @@ c     urt      = r-deriv of t-deriv solution
 c     utt      = theta-second deriv of solution c
 
       use arrays, only: isolver, Halpha, ucoeff, urcoeff, urrcoeff
+      use arrays, only: zw,gcoeff, pt, qt, fr, fi, un, unr
 
       implicit real*8 (a-h,o-z)
       real*8  blength(nsub)
@@ -54,19 +55,9 @@ c     utt      = theta-second deriv of solution c
       real *8  rnd(nsub*k),f(nsub*k,nth),g(nth)
  
    
+      real *8 wsave(6*nth+100)
 c
 c     get arrays for FFTs, ODE solver, etc.
-c
-      complex *16, allocatable :: zw(:)
-      complex *16, allocatable :: gcoeff(:)
-      complex *16, allocatable :: wsave(:)
-
-      real *8, allocatable :: pt(:)
-      real *8, allocatable :: qt(:)
-      real *8, allocatable :: fr(:)
-      real *8, allocatable :: fi(:)
-      real *8, allocatable :: un(:)
-      real *8, allocatable :: unr(:)
 c
 c     determine length of work array zw
 c     allocate zw, wsave for ffts, wbvp/iwbvp for bvp solver
@@ -88,15 +79,6 @@ c     alpha    = Helmholtz coefficient for isolve=0,1,2
       itot = izcp + nth
 c
       write (*,*) 'zw',itot,nth,nth,nr
-      allocate(zw(itot))
-      allocate(gcoeff(nth))
-      allocate(wsave(6*nth+100))
-      allocate(pt(nr+10))
-      allocate(qt(nr+10))
-      allocate(fr(nr+10))
-      allocate(fi(nr+10))
-      allocate(un(nr+10))
-      allocate(unr(nr+10))
 c
 c     compute FFT of the rhs of PDE at each chebychev node
 c

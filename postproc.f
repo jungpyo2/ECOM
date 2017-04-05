@@ -1738,6 +1738,7 @@ c      close(sol_unit)
       real *8 Btheta2(ncon),betatf2(ncon),tempIb(ncon),Ib(*)
       integer *4 sol_unit, ncon
  
+      sol_unit=10
       call chftransq(chcoeffR, R0, ncon, cftmq)
       call chftransq(chcoeffk, kappa, ncon, cftmq)
       call chftransq(chcoeffd, delta, ncon, cftmq)
@@ -1780,7 +1781,7 @@ c         end do
 c         write(*,*) 'temp13',temp1,temp3
       end do
 
-c      write(*,*) 'betatf2',betatf2
+      write(*,*) 'fitMil3',ncon, R0(1:ncon),kappa(1:ncon)
 
       open(sol_unit, file='fitMiller.out')
 
@@ -4111,7 +4112,7 @@ c         write(*,*) 'fpolcon2fit',fpolcon2fit
 
 c      ksamp3=ksamp2/4 
       pi=4.0d0*datan(1.0d0)
-
+      write(*,*) 'fitMil',ncon
 c      write(*,*) 'psiRintot',psiRcon(1:ncon*ksamp3)
       do k=1, ncon
          istart=icon(k)
@@ -4252,6 +4253,7 @@ c            write(*,*) 'iiterf,delb', iiterf,real(delb(1:3))
          deltamil(k)=dsin(b3)
       end do
 
+      write(*,*) 'fitMil2',ncon,R0mil(1:ncon)
       return
       end 
 

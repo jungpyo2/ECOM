@@ -9,23 +9,25 @@
       use arrays, only:  nt1, ksamp,  nt2, eps, epsLag
       use arrays, only:  Rt1, Zt1, T1, dRt1, dZt1, w1, dwdz1, dwdzz1
       use arrays, only:  Rt2, Zt2, T2, dRt2, dZt2, dwdz2, dwdzz2
+
+      use arrays, only:  dfdzbf,dfdzzbf,fbf,zbf,zmbf, dwdz1m, dwdzz1m 
 c
 c     read the fixed boundary from a file
       implicit double precision(a-h, o-z)
 c      real *8 T2temp(1000 000), Rt2temp(1000 000), Zt2temp(1000 000)
 c      real *8 dRt2temp(1000 000), dZt2temp(1000 000)
-      complex *16 dfdz(1000 000), dfdzz(1000 000)
-      real * 8 curv(6,nt1+1), fr(1000 000), fi(1000 000)
+      !complex *16 dfdz(nt1+1), dfdzz(nt1+1)
+      real * 8 curv(6,nt1+1), fr(nt1*ksamp+1), fi(nt1*ksamp+1)
       integer m, nnt2
-      complex *16 ima, fixed
-      complex *16 f(1000 000),f2(1000 000), w(1000 000)
-      complex *16 z(1000 000), zm(1000 000), dwdz1m(1000 000)
-      complex *16 dwdzz1m(1000 000)
+      complex *16 ima, fixed, w(4*nt1*nt1+10000)
+!      complex *16 f(nt1*ksamp+1), w(4*nt1*nt1+10000)
+!      complex *16 z(nt1*ksamp+1), zm(nt1*ksamp+1), dwdz1m(nt1*ksamp+1)
+!      complex *16 dwdzz1m(nt1*ksamp+1)
 c      complex *16 dwdz2temp(1000 000), dwdzz2temp(1000 000)
       
       
  
-  
+      write(*,*) 'nt',nt1,ksamp
       m = nt1*ksamp 
  
  
@@ -70,21 +72,21 @@ c      allocate (curv(6,nt1+1));
       curv(4,:)=Zt1
       curv(5,:)=dZt1
       rltot = t1(nt1+1)
-      lw=20 000 000
+      lw=4*nt1*nt1+10000 !need to be larger than 4*nt1**2 !20 000 000
+      write(*,*) 'nt1-2',nt1,ksamp,lw,w(lw)
 !      allocate (f(m), f2(m), w(lw))
-      call szego_fft(nt1,curv,rltot,ksamp,fixed,f,dfdz,dfdzz,crowd,
-     1      w,lw)
-!      write(*,*) 'dfdz',dfdz(1:nt1)
+      call szego_fft0(nt1,curv,rltot,ksamp,fixed,crowd)
+      write(*,*) 'dfdzbf',dfdzbf(1:nt1)
       do i=1,nt1
-         w1(i)=f(1+(i-1)*ksamp)
+         w1(i)=fbf(1+(i-1)*ksamp)
       end do
       do i=1,nt1
-         dwdz1(i)=dfdz(i)
-         dwdzz1(i) = dfdzz(i)
+         dwdz1(i)=dfdzbf(i)
+         dwdzz1(i) = dfdzzbf(i)
       end do
       d=-1
       do 2400 i=1,m
-         dd=1-abs(f(i))
+         dd=1-abs(fbf(i))
          dd=abs(dd)
          if (dd .gt. d) d=dd
            
@@ -98,7 +100,7 @@ c
       hmax=-1
 c
       do 3100 i=1,nt1-1
-         d1=abs(f(i+1)-f(i))
+         d1=abs(fbf(i+1)-fbf(i))
          if (d1 .lt. hmin) hmin=d1
          if (d1 .gt. hmax) hmax=d1
  3100 continue
@@ -110,13 +112,13 @@ c
       
 !      allocate(fr(m),fi(m))
       do 3200 i=1,m
-         fr(i)=f(i)
-         fi(i)=-ima*f(i)
+         fr(i)=fbf(i)
+         fi(i)=-ima*fbf(i)
  3200 continue
 c
       if (iprintmap.eq.1) then
          iw=12     
-c      write(*,*) 'test1'
+       write(*,*) 'test1'
 
          call quaplot(iw,fr,fi,m,itype2,'conformal map via fft*')
       end if
@@ -127,12 +129,12 @@ c       zero pad and fft the original curve so that it is of length m
 c
 
       do 4800 i=1,nt1+1
-         z(i)=curv(1,i)+ima*curv(4,i)
+         zbf(i)=curv(1,i)+ima*curv(4,i)
  4800 continue
 
       m=nt1*ksamp
 
-      call interpfft(nt1,z,m,zm,w)
+      call interpfft(nt1,zbf,m,zmbf,w)
       call interpfft(nt1,dwdz1,m,dwdz1m,w)
       call interpfft(nt1,dwdzz1,m,dwdzz1m,w)
 c
@@ -147,7 +149,7 @@ c
 
         call cnfinv_init(
      1       nt2+1,T2, Rt2, Zt2, dRt2, dZt2,dwdz2, dwdzz2
-     2       ,ier,eps,m,f,zm,dwdz1m,dwdzz1m,k,nmax,errmax,w,lw,lused)
+     2       ,ier,eps,m,k,nmax,errmax,w,lw,lused)
 
         write(*,*) 'after cnfinc_init, ier=',ier
         write(*,*) 'after cnfinc_init, errmax=*',errmax
@@ -219,11 +221,10 @@ c      real *8 rconst(nsub*nt2)
 c      real *8 tconst(nsub*nt2)
 c      real *8 uconst(nsub*nt2)
 
-      real *8 wsave(100 000)
-      real *8 x(ntot),y(ntot)
+      real *8 wsave(10 000)
 
-      complex *16 ima, wz, cint, wcon, z(10 000), dzdw2(10 000)
-      complex *16 dzdww2(10 000), temp1(nt2), temp2(nt2), temp3(nt2)
+      complex *16 ima, wz, cint, wcon, z(nt2+1), dzdw2(nt2+1)
+      complex *16 dzdww2(nt2+1), temp1(nt2), temp2(nt2), temp3(nt2)
       integer sol_unit
       real *8 maxdpsi,  maxpsi, lambda
       character(3) ko, ns
@@ -417,10 +418,12 @@ c
 c
 c
         subroutine szego_fft(n,curv,rltot,ksamp,fixed,
-     1      f, dfdz,dfdzz,crowd,w,lw)
+     1      crowd,w,lw)
+
+        use arrays, only:  dfdzbf,dfdzzbf, fbf
         implicit real *8 (a-h,o-z)
         real *8 curv(6,1)
-        complex *16 fixed,f(1), dfdz(1),dfdzz(1),w(1)
+        complex *16 fixed,w(lw)
 c
 c       this routine conformally maps equispaced points in arclength
 c       on the boundary of a curve to the boundary of the unit disc
@@ -468,6 +471,7 @@ c
 c
 c       memory manage...
 c
+        write(*,*) 'nt1-3',n,ksamp,lw
         iz=1
         lz=n+10
 c
@@ -487,9 +491,9 @@ c
         lw2=lw-iw2
 c
         call runtime(' before szego_fft0 ')
-        call szego_fft0(n,curv,rltot,ksamp,fixed,
-     1      f,dfdz,dfdzz,crowd,w(iz),w(idzds),w(irhs),w(isol),w(iw7),
-     2      lw7,w(iw2),lw2)
+c        call szego_fft0(n,curv,rltot,ksamp,fixed,
+C     1     crowd,w(iz),w(idzds),w(irhs),w(isol),w(iw7),
+C     2      lw7,w(iw2),lw2)
 c
 c        write(*,*) 'dfdz0',dfdz(1:n)
         return
@@ -498,15 +502,20 @@ c
 c
 c
         subroutine szego_fft0(n,curv,rltot,ksamp,fixed,
-     1      f,dfdz,dfdzz,crowd,z,dzds,rhs,sol,w7,lw7,w,lw)
+     1     crowd)
 
+        use arrays, only:  dfdzbf,dfdzzbf, fbf
         use arrays, only: iprintmap, iiter, wsaved, w7saved
+        use arrays, only: w7, w8, w9
+
         implicit real *8 (a-h,o-z)
-        real *8 curv(6,1),ttt(10 000),ys(10 000),xs(10 000)
-        complex *16 fixed,f(1),dfdz(1),dfdzz(1),z(1),dzds(1),rhs(1)
-     1       ,sol(1),w7(1),w(n,n),ima,offset, dfdss(n),dsdz(n),dsdzs(n) 
+        real *8 curv(6,1),ttt(n),ys(n),xs(n)
+        complex *16 fixed,z(n)
+        complex *16 dzds(n),rhs(n), dfdss(n),dsdz(n),dsdzs(n) 
+     1       ,sol(n),ima,offset
 c
 c
+         write(*,*) 'nt1-4',n,ksamp
         done=1
         pi=4*atan(done)
         ima=(0,1)
@@ -543,23 +552,23 @@ c
 c
         if (i .eq. j) goto 2600
 c
-        w(i,j)=conjg(dzds(i)/(z(i)-z(j))/2/pi/ima)
-        w(i,j)=w(i,j)-dzds(j)/(z(j)-z(i))/2/pi/ima
-        w(i,j)=rltot*w(i,j)/n
+        w9(i,j)=conjg(dzds(i)/(z(i)-z(j))/2/pi/ima)
+        w9(i,j)=w9(i,j)-dzds(j)/(z(j)-z(i))/2/pi/ima
+        w9(i,j)=rltot*w9(i,j)/n
 c
  2600   continue
 c
-        w(i,i)=1
+        w9(i,i)=1
  2800   continue
 c
         call runtime(' before cqrdecom   ')
-        call cqrdecom(w,n,w7,rcond)
+        call cqrdecom(w9,n,w7,rcond)
         call runtime(' after cqrdecom   ')
         write(*,*) 'rcond=*',rcond
 c
         do i=1,n
         do j=1,n
-           wsaved((i-1)*n+j)=w(i,j)
+           wsaved((i-1)*n+j)=w9(i,j)
            w7saved((i-1)*n+j)=w7((i-1)*n+j)
         end do
         end do
@@ -568,7 +577,7 @@ c
                ! skip the QR decomposition, instead restore the saved w and w7
         do i=1,n
         do j=1,n
-           w(i,j)=wsaved((i-1)*n+j)
+           w9(i,j)=wsaved((i-1)*n+j)
            w7((i-1)*n+j)=w7saved((i-1)*n+j)
         end do
         end do
@@ -578,7 +587,7 @@ c
         call runtime(' before cqrsolve   ')
         call cqrsolve(n,w7,rhs,sol)
 c
-        call cmatvec(n,w,sol,w7)
+        call cmatvec(n,w9,sol,w7)
         call runtime(' after cqrsolve    ')
 c
         cd1=0
@@ -604,7 +613,7 @@ c
         w7(i)=2*pi*sol(i)**2/saa
         xs(i)=w7(i)
         ys(i)=-ima*w7(i)
-        dfdz(i)= w7(i)
+        dfdzbf(i)= w7(i)
  3800   continue
 
         
@@ -651,48 +660,49 @@ c       ...differentiate dfds to find dfdss via an fft
 c       and use it to find dfdzz=dfdss*dsdz**2+dfds*d(dsdz)ds*dsdz
 
 c        write(*,*) 'w7=',w7(1:n)
-        call cdifffft(n,w7,dfdss,w)
+        call cdifffft(n,w7,dfdss,w8)
 c        write(*,*) 'dfdss=',dfdss
-        call cdifffft(n,dsdz,dsdzs,w)
+        call cdifffft(n,dsdz,dsdzs,w8)
 c        write(*,*) 'dsdzs=',dsdzs
  
         do i=1,n
-        dfdzz(i)=dfdss(i)*(dsdz(i)*dsdz(i))+w7(i)*dsdzs(i)*dsdz(i)
+        dfdzzbf(i)=dfdss(i)*(dsdz(i)*dsdz(i))
+     1       +w7(i)*dsdzs(i)*dsdz(i)
         end do
 c        write(*,*) 'dfdzz=',dfdzz
 c
 c       ...and now integrate dfds via an fft
 c
         m=n*ksamp
-        call cintfft(n,w7,m,f,w)
+        call cintfft(n,w7,m,fbf,w8)
 
 c
 c       compensate for off center cicle - 
 c       use formula for center of a circle given 3 points on the circle
 c
-        x1=f(1)
-        y1=-ima*f(1)
-        r1=f(1)*conjg(f(1))
+        x1=fbf(1)
+        y1=-ima*fbf(1)
+        r1=fbf(1)*conjg(fbf(1))
 c
         do 5000 i=2,m
-        dis2=(f(1)-f(i))*conjg(f(1)-f(i))
+        dis2=(fbf(1)-fbf(i))*conjg(fbf(1)-fbf(i))
         if (dis2 .ge. 1.0d0) goto 5200
  5000   continue
  5200   continue
 c
-        x2=f(i)
-        y2=-ima*f(i)
-        r2=f(i)*conjg(f(i))
+        x2=fbf(i)
+        y2=-ima*fbf(i)
+        r2=fbf(i)*conjg(fbf(i))
 c
         do 5600 j=i,m
-        dis2=(f(j)-f(i))*conjg(f(j)-f(i))
+        dis2=(fbf(j)-fbf(i))*conjg(fbf(j)-fbf(i))
         if (dis2 .ge. 1.0d0) goto 5800
  5600   continue
  5800   continue
 c
-        x3=f(j)
-        y3=-ima*f(j)
-        r3=f(j)*conjg(f(j))
+        x3=fbf(j)
+        y3=-ima*fbf(j)
+        r3=fbf(j)*conjg(fbf(j))
 c
         d=2*(x1*y2-x1*y3+y1*x3-y1*x2+x2*y3-y2*x3)
         tx=(r1*y2-r1*y3+y1*r3-y1*r2+r2*y3-y2*r3)
@@ -701,7 +711,7 @@ c
         offset=tx/d+ima*ty/d
 c
         do 6200 i=1,m
-        f(i)=f(i)-offset
+        fbf(i)=fbf(i)-offset
  6200   continue
 c
         return
@@ -1150,31 +1160,34 @@ c
 
       subroutine cnfinv_init(nt2temp,T2temp,Rt2temp,Zt2temp,
      1      dRt2temp,dZt2temp, dwdz2temp,dwdzz2temp,
-     2            ier,eps,m,f,z,dwdz1,dwdzz1,k,nmax,errmax,w,lw,lused)
+     2            ier,eps,m,k,nmax,errmax,w,lw,lused)
       
+        use arrays, only:  fbf, zmbf, dwdz1m, dwdzz1m
 c        use arrays, only:  Rt2, Zt2, T2, dRt2, dZt2
         use arrays, only:  kLag, epsLag, iprintmap
 c        use arrays, only:  IntLag_periodic2 
 
         implicit real *8 (a-h,o-z)
         save
-        real *8 w(1), t(10000)
+        real *8 w(lw), t(m+1)
         integer nt2temp, i2pi
 !        real *8 T2o(n2o), R2o(n2o), Z2o(n2o), dR2o(n2o), dZ2o(n2o)
-        real *8 T2temp(1),Rt2temp(1),Zt2temp(1)
-        real *8 dRt2temp(1),dZt2temp(1)
-        complex *16 f(1),z(1),ima,zz, dwdz1(1),dwdzz1(1), dwdz2temp(1)
-        complex *16 dwdzz2temp(1)
+        real *8 T2temp(nt2temp),Rt2temp(nt2temp),Zt2temp(nt2temp)
+        real *8 dRt2temp(nt2temp),dZt2temp(nt2temp)
+        complex *16 ima,zz
+        !complex *16 f(m+1),z(m+1), dwdz1(m+1)
+        !complex *16 dwdzz1(m+1),
+        complex *16  dwdz2temp(m+1),dwdzz2temp(m+1)
         complex *16 ftemp(m+1),ztemp(m+1),dwdz1temp(m+1),dwdzz1temp(m+1)
 !        real *8, allocatable :: x(:),y(:), tin(:)
         real *8 ttemp(m+1),min2pi
         real *8 x(m+1),y(m+1), tin(m+1),dxdz(m+1),dydz(m+1)
         real *8 dxdzz(m+1),dydzz(m+1)
-        real *8 dxdz2(10000),dydz2(10000)
-        real *8 dxdzz2(10000),dydzz2(10000)
-        real *8 ddxdzdt2(10000),ddydzdt2(10000)
-        real *8 ddxdzzdt2(10000),ddydzzdt2(10000)
-        integer *4 isort(10 000)
+        real *8 dxdz2(m+1),dydz2(m+1)
+        real *8 dxdzz2(m+1),dydzz2(m+1)
+        real *8 ddxdzdt2(m+1),ddydzdt2(m+1)
+        real *8 ddxdzzdt2(m+1),ddydzzdt2(m+1)
+        integer *4 isort(m+1)
 c
 c       this subroutine takes a more or less random, but well
 c       oversampled, discritization of a forward conformal map
@@ -1229,7 +1242,7 @@ c
 c       turn f into thetas on the unit disc and ensure that the
 c       inverse map is defined on exactly [0+a,2*pi+a], for some a
 c
-        zz=log(f(1))
+        zz=log(fbf(1))
         theta=-ima*zz
         ifpos=0        
         if (theta .ge. 0) ifpos=1
@@ -1237,8 +1250,8 @@ c
 
         do 1000 i=1,m
 c
-        yy=-ima*(f(i))
-        zz=log(f(i))
+        yy=-ima*(fbf(i))
+        zz=log(fbf(i))
         theta=-ima*zz
 c
         if ((ifpos .eq. 1) .and. (yy .lt. 0)) then
@@ -1280,24 +1293,24 @@ c        call qsortinc(m,t(1:m),isort(1:m))
   
         do i=1, m
            ttemp(i)=t(isort(i))
-           ftemp(i)=f(isort(i))
-           ztemp(i)=z(isort(i))
-           dwdz1temp(i)=dwdz1(isort(i))
-           dwdzz1temp(i)=dwdzz1(isort(i))
+           ftemp(i)=fbf(isort(i))
+           ztemp(i)=zmbf(isort(i))
+           dwdz1temp(i)=dwdz1m(isort(i))
+           dwdzz1temp(i)=dwdzz1m(isort(i))
         end do
         t(1:m)=ttemp(1:m)
-        f(1:m)=ftemp(1:m)
-        z(1:m)=ztemp(1:m)
-        dwdz1(1:m)=dwdz1temp(1:m)
-        dwdzz1(1:m)=dwdzz1temp(1:m)
+        fbf(1:m)=ftemp(1:m)
+        zmbf(1:m)=ztemp(1:m)
+        dwdz1m(1:m)=dwdz1temp(1:m)
+        dwdzz1m(1:m)=dwdzz1temp(1:m)
 c        write(*,*) "tcmap",t(1:m)
 c        write(*,*) "isortcmap",isort(1:m)
         mm=m+1
         t(mm)=t(1)+2*pi
-        f(mm)=f(1)
-        z(mm)=z(1)
-        dwdz1(mm)=dwdz1(1)
-        dwdzz1(mm)=dwdzz1(1)
+        fbf(mm)=fbf(1)
+        zmbf(mm)=zmbf(1)
+        dwdz1m(mm)=dwdz1m(1)
+        dwdzz1m(mm)=dwdzz1m(1)
  1200   continue
 
 c
@@ -1305,12 +1318,12 @@ c       ...interpolate the real part of the inverse map
 c
 !        allocate (x(mm),y(mm),tin(mm))
         do 1400 i=1,mm
-        x(i)=z(i)
-        y(i)=-ima*(z(i))
-        dxdz(i)=dwdz1(i)
-        dydz(i)=-ima*(dwdz1(i))
-        dxdzz(i)=dwdzz1(i)
-        dydzz(i)=-ima*(dwdzz1(i))
+        x(i)=zmbf(i)
+        y(i)=-ima*(zmbf(i))
+        dxdz(i)=dwdz1m(i)
+        dydz(i)=-ima*(dwdz1m(i))
+        dxdzz(i)=dwdzz1m(i)
+        dydzz(i)=-ima*(dwdzz1m(i))
         tin(i) = t(i)
  1400   continue
  
@@ -1325,12 +1338,12 @@ c
  
         ! Lagrange interpolation for 
         !epsLag=1e-3
-c        write(*,*), '123'
+       write(*,*), '123',mm,nt2temp
 c        nt2temp = 513
        call IntLag(mm,tin, x, y, kLag, nt2temp, T2temp, Rt2temp, 
      1      Zt2temp,  dRt2temp, dZt2temp, epsLag)
-c       write(*,*), '456, nnt',nt2temp
-c       write(*,*), '456, nnt',dxdz2(1:nt2)
+       write(*,*), '456, nnt',nt2temp
+       write(*,*), '456, nnt',dxdz2(1:nt2temp)
        call IntLag(mm,tin, dxdz, dydz, kLag, nt2temp, T2temp, dxdz2, 
      1      dydz2,  ddxdzdt2, ddydzdt2, epsLag)
 c       write(*,*), '789, nnt',nt2temp
@@ -1382,6 +1395,7 @@ c        write(*,*), '10, nnt',nt2temp
         end do
 c        write(*,*) 'dwdz2'!, dwdz2temp(1:nt2temp)
 
+        write(*,*) 'Start mapping2'
         return
         end
 c

@@ -52,7 +52,7 @@ c      parameter (nr = nsub * kcheb)
 c      parameter (ntmax = 300)
 
       
- 
+      integer ntheta
 c      parameter (ntcon = ntheta*ncon)
       real *8 fsol(ntot)
       real *8 psif(ntot)
@@ -68,6 +68,7 @@ c      real *8 presch(nchq)
 
       real *8 psicontmp(nchq), psicontmp0(nchq0), psiichsub(kcheb)
       real *8 fpolcon(nchq), bnodestmp(nsub+1)
+      real *8 chcoeff0(nchq0)
       real *8 mu0
       complex *16 ima
       
@@ -84,7 +85,7 @@ c      save
       ntheta=nt2
 
       korder = kcheb
-  
+      write(*,*) 'ntheta-check0',iiter,ntheta,korder
       if (iiter.eq.1) then !initial condition for the first iteration
          
          do i=1,ntheta
@@ -106,6 +107,7 @@ c     The number of flux surfaces will be reconvered after iterations iiter>iite
          if (nchq.gt.6) nchq=6            
          call chsetupq(nchq, psiichq, cftmq, spbx, spxb, spdef)
          write(*,*) 'psiichq',psiichq(1:nchq)
+         write(*,*) 'ntheta-check00',iiter,ntheta,korder
          select case (iptype)   ! Option for pressure and current profiles
          case(0)                ! solovev solution 
             pprimch0(1:nchq0)=-csol/mu0
@@ -196,6 +198,7 @@ c               call chftransq(chcoeffprho, preschrho, nchq0, cftmq0)
 
          end select
 
+         write(*,*) 'ntheta-check01',iiter,ntheta,korder
          select case (iqtype)   ! Option for q profiles
          case(0)                ! solovev solution 
           
@@ -216,11 +219,12 @@ c               call chftransq(chcoeffprho, preschrho, nchq0, cftmq0)
          case(2) ! profile by Table
             call spline(-psiiq, qpsiin     
      1           , bqpsi, cqpsi, dqpsi, nqpsi) 
-            
+            write(*,*) 'ntheta-check021',iiter,ntheta,korder
             do i= 1, nchq0
                call ispline(-psiichq0(i),-psiiq
      1              , qpsiin , bqpsi, cqpsi, dqpsi,nqpsi, qpsich0(i))
             end do
+            write(*,*) 'ntheta-check022',iiter,ntheta,korder
             call ispline(-1.0d0,-psiiq
      1              , qpsiin , bqpsi, cqpsi, dqpsi,nqpsi, q0)
 
@@ -228,8 +232,10 @@ c               call chftransq(chcoeffprho, preschrho, nchq0, cftmq0)
             do i=1,nchq
                call chfit(1-psiichq(i), nchq0, chcoeff0,qpsich(i))
             end do
+            write(*,*) 'ntheta-check023',iiter,ntheta,korder
          end select
 
+         write(*,*) 'ntheta-check02',iiter,ntheta,korder
          write(*,*) 'pprim',pprimch(1:nchq)
          write(*,*) 'qpsich',qpsich(1:nchq)
          write(*,*) 'fpolch',fpolch(1:nchq)
@@ -289,7 +295,7 @@ c               write(*,*) 'ptflowch',ptflowch(1:nchq)
             end select
          end if
       end if
- 
+      write(*,*) 'ntheta-check1',iiter,ntheta,korder
 
 !----------------------------------------------------
 ! The following is for every iteration
@@ -300,7 +306,7 @@ c               write(*,*) 'ptflowch',ptflowch(1:nchq)
       write(*,*) 'ffprimpre1',ffprimpre1(1:nchq)
       write(*,*) 'ffprimpre2',ffprimpre2(1:nchq)
       write(*,*) 'ffprimgoal',ffprimgoal(1:nchq)
-
+      write(*,*) 'ntheta-check2',iiter,ntheta,korder
       if ((iptype.eq.2).and.(iptable.eq.1)) then ! make pprimch from pressure for iptable=1 or 2
             pprimch(1:nchq)=pprimch0(1:nchq)*lambda
             chcoeffpp(1:nchq)=chcoeffpp0(1:nchq)*lambda
@@ -481,7 +487,7 @@ c                  write(*,*) 'ptflow',ptflow,p_inext,ptfbyp,pexp
          end do
 
       end if
-
+      write(*,*) 'ntheta-check3',iiter,ntheta,korder
       write(*,*) 'iteration index =', iiter
       do inext = 1, ntot
     
@@ -495,25 +501,28 @@ c         end if
      3       -halpha**2.0d0*psii(inext)/dsqrt(Rt3(inext))
       end do
 
-
+      write(*,*) 'ntheta-check4',iiter,ntheta,korder
       ibc = 1
       
       bnodestmp(1:nsub+1)=bnodes(1:nsub+1)
-
+      write (*,*) 'work1',iiter,nsub,korder,ntheta, nt2
       ntheta=nt2
 
       korder = kcheb
-      write (*,*) 'work1',nsub,korder,ntheta
+    
       call elliptic(nsub,korder,ntheta,rnd,rnd(nr+1),
      1     u,ur,uth,urr,urt,utt,f,blength,bnodestmp,ibc,g)
 
       psif(1:ntot) =u(1:ntot)*sqrt(Rt3(1:ntot))
      
       maxpsi = 0.0d0
+      write(*,*) 'psi',psif(1),psif(ntot/2)
       do inext = 1, ntot
-         if (abs(psif(inext)) > maxpsi) then
+          
+         if (abs(psif(inext)) .ge. maxpsi) then
             maxpsi = abs(psif(inext))
             inext_maxpsi=inext
+            
          end if
       end do
  
@@ -524,15 +533,16 @@ c         end if
          end if
       end do
 
-      write (*,*) 'work2'
+      write (*,*) 'work2',ntot,inext_maxpsi
       ! find magnetic axis off the grid if needed
       if ((maxdpsi.lt.dpsistartmag).and.(ifindmagaxis.eq.1)) then
-       
+          write (*,*) 'work2-1'
          if ((rndm.lt.0.0d0).or.(iremap.eq.1)) then !For initial value, find values on grid 
             call findinitmax(inext_maxpsi, rndm, tndm
      1           , dpsidrm, dpsidtm, dpsidrrm ,dpsidrtm, dpsidttm
      2           , Rt3m, Zt3m, psim)
          end if
+        write (*,*) 'work2-2'
          call findmagaxis(rndm, tndm, dpsidrm, dpsidtm 
      1        ,dpsidrrm ,dpsidrtm, dpsidttm, Rt3m, Zt3m, psim
      2        ,dpsim2)
@@ -544,6 +554,7 @@ c         end if
 
          dist2=(Rmaxis-Rmap0)**2+(Zmaxis-Zmap0)**2
        else  ! magnetic axis on the grid
+          write (*,*) 'work2',inext_maxpsi
          Rmaxpsi=Rt3(inext_maxpsi)
          Zmaxpsi=Zt3(inext_maxpsi)
          Rmaxis=Rmaxpsi
@@ -745,7 +756,7 @@ c         write(*,*) 'fpolch', fpolch(1:nchq)
 c         write(*,*) 'pprimch', pprimch(1:nchq)
 c      end if
 
-      write (*,*) 'work11',nsub,korder,ntheta
+      write (*,*) 'work11',iiter,nsub,korder,ntheta
       ntheta=nt2
       korder = kcheb 
       do j=1, ntheta

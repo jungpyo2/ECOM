@@ -51,6 +51,9 @@ module arrays
   public :: itrinity, iogyropsi, ntpsi, tpsi, trho, nttin, ttin, dpsidrho
   public :: gradpar,Rtrin,Ztrin,btot,bpol,gbdrift,gbdrift0, cvdrift,cvdrift0
   public :: shatlocal1,shatlocal2,shatlocal3
+  public :: zw,gcoeff, pt, gt, fr, fi, un, unr
+  public :: dfdzbf,dfdzzbf,fbf,zbf,zmbf, dwdz1m, dwdzz1m, w7, w8, w9 
+
   character (20) :: file_prof, file_qprof,file_jprof,file_bc, file_efit, file_tflow
   integer :: nin, nt1, ksamp,ksamp2, kLag, nt2, nsub, kcheb, maxiter 
   integer :: nr, ntot, npsi, iremap, iremapon, iiter, nchq, iiterl, isymud, nchq0
@@ -103,6 +106,11 @@ module arrays
   complex * 16, dimension(:), allocatable :: wsaved, w7saved, zk, dzdw2k, dzdww2k
   complex * 16, dimension(:), allocatable :: ucoeff, urcoeff, urrcoeff
 
+  complex * 16, dimension(:), allocatable :: zw,gcoeff  !arrays for elliptic.f
+  real * 8, dimension(:), allocatable :: pt, qt, fr, fi, un, unr  !
+  complex * 16, dimension(:), allocatable :: dfdzbf,dfdzzbf,fbf,zbf,zmbf, dwdz1m, dwdzz1m, w7, w8  ! arrays for cmap.f
+  complex * 16, dimension(:,:), allocatable :: w9
+  !real * 8, dimension(:), allocatable :: pt, qt, fr, fi, un, unr  
 contains
 
   subroutine initarray
@@ -485,6 +493,10 @@ contains
     allocate (dWdZ1(nt1+1), dWdZZ1(nt1+1)) 
     allocate (w1(nt1), wsaved(nt1*nt1), w7saved(nt1*nt1))
 
+    allocate (dfdzbf(nt1+1),dfdzzbf(nt1+1))
+    allocate (fbf(nt1*ksamp+1), zbf(nt1+1), zmbf(nt1*ksamp+1))
+    allocate (dwdz1m(nt1*ksamp+1),dwdzz1m(nt1*ksamp+1))
+    allocate (w7(2*nt1*nt1+10*nt1+10000), w8(10*nt1*ksamp), w9(nt1,nt1)) 
     Rt1 = 0.0; Zt1 = 0.0; T1 = 0.0
     dRt1 = 0.0; dZt1 = 0.0; w1= 0.0
 
@@ -604,6 +616,7 @@ end subroutine allocarray2
 
     implicit none
 
+    integer ::  ifcoeff,  iu ,iur, iurr, izc, izcp, itot
     allocate (cftmsub(kcheb*kcheb))
     allocate (psiichq(nchq), phiichq(nchq), cftmq(nchq*nchq),spbx(nchq*nchq),spxb(nchq*nchq))
     allocate (spdef(nchq), qpsich(nchq), jpsich(nchq), pprimch(nchq),ffprimch(nchq))  
@@ -626,6 +639,26 @@ end subroutine allocarray2
     allocate (g(nt2), f(ntot), psii(ntot), psiex(ntot))
     allocate (dpsidr(ntot), dpsidrr(ntot), u(ntot), ur(ntot), uth(ntot), utt(ntot))
     allocate (urr(ntot), urt(ntot), ucoeff(ntot), urcoeff(ntot), urrcoeff(ntot))
+
+
+      !nr = nsub*k
+      !ntot = nr*nth
+      ifcoeff = 1 
+      iu = ifcoeff + ntot
+      iur = iu + ntot
+      iurr = iur + ntot
+      izc = iurr + ntot
+      izcp = izc + nt2
+      itot = izcp + nt2
+
+      allocate(zw(itot))
+      allocate(gcoeff(nt2))
+      allocate(pt(nr+10))
+      allocate(qt(nr+10))
+      allocate(fr(nr+10))
+      allocate(fi(nr+10))
+      allocate(un(nr+10))
+      allocate(unr(nr+10))
  
     fpolcon2 = 0.0d0
     ffprimpre = 0.0d0 
@@ -644,6 +677,9 @@ end subroutine allocarray2
     deallocate (dpsidr, dpsidrr, u, ur, uth, utt)
     deallocate (urr, urt, ucoeff, urcoeff, urrcoeff)
     deallocate (g, f, psii, psiex) 
+    deallocate (zw, gcoeff, pt, qt, fr, fi, un, unr) 
+    deallocate (dfdzbf,dfdzzbf, fbf,zbf,zmbf, dwdz1m, dwdzz1m )
+    deallocate (w7, w8, w9)
 
   end subroutine deallocarray
 end module arrays

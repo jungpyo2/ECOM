@@ -77,6 +77,7 @@ c      real *8 presch(nchq)
 
       real *8 psicontmp(nchq), psicontmp0(nchq0), psiichsub(kcheb)
       real *8 fpolcon(nchq)
+      real *8 chcoeff0(nchq0)
       real *8 mu0
       complex *16 ima
       
