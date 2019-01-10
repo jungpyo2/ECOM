@@ -9,7 +9,7 @@
       use arrays, only:  ibtype, nt1, kLag, eps, epsLag
       use arrays, only:  R0, Z0, Rmid, Rmax, Rmin
       use arrays, only:  nin, Rin, Zin, Tin
-      use arrays, only:  Rt1, Zt1, T1, dRt1, dZt1, dT1
+      use arrays, only:  Rt1, Zt1, T1, dRt1, dZt1, dT1, T1_mil, T1_mil2
       use arrays, only:  csol,reps,rkappa,delta,q0,F0,d1,d2,d3
       use arrays, only:  npsi, psiEF, psiiEF, pprimEF, ffprimEF
       use arrays, only:  allocarrayProf, file_prof, iprintmap
@@ -125,6 +125,23 @@ c
             Rin(1:nt1)=Rt1(1:nt1) 
             Zin(1:nt1)=Zt1(1:nt1) 
 c
+            t1_mil(1)=0.0
+            t1_mil2(1)=0.0
+            do i=2, nt1
+               t1_mil(i)=2.0*pi/nt1*(i-1)
+               x=dcos(t1_mil(i)+alpha*dsin(t1_mil(i)))
+               y=rkappa*dsin(t1_mil(i))
+
+               t1_mil2(i) =atan2(y,x)
+               if (t1_mil2(i).lt.0) then 
+                  t1_mil2(i)=2.0d0*pi+t1_mil2(i)
+               end if
+            end do
+            t1_mil(nt1+1)=2.0*pi
+            t1_mil2(nt1+1)=2.0*pi
+
+            write(*,*) 'theta for miller',t1_mil2(1:nt1+1)
+            
             Rmax=R0*(1.0d0+reps)  
             Rmin=R0*(1.0d0-reps) 
             Rmid=R0  

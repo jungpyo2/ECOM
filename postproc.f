@@ -1115,7 +1115,7 @@ c     1        ,tkappamil,tdeltamil,file_name)
 
  
 
-      if (iprintEFIT.eq.1) then
+      if (iprintEFIT.ge.1) then
 
          write(*,*) 'before printEFIT'
          call printEfitG (npsi, ncon, qcon, acmcur0)
@@ -1738,7 +1738,6 @@ c      close(sol_unit)
       real *8 Btheta2(ncon),betatf2(ncon),tempIb(ncon),Ib(*)
       integer *4 sol_unit, ncon
  
-      sol_unit=10
       call chftransq(chcoeffR, R0, ncon, cftmq)
       call chftransq(chcoeffk, kappa, ncon, cftmq)
       call chftransq(chcoeffd, delta, ncon, cftmq)
@@ -1781,7 +1780,7 @@ c         end do
 c         write(*,*) 'temp13',temp1,temp3
       end do
 
-      write(*,*) 'fitMil3',ncon, R0(1:ncon),kappa(1:ncon)
+c      write(*,*) 'betatf2',betatf2
 
       open(sol_unit, file='fitMiller.out')
 
@@ -2028,12 +2027,13 @@ c      close(sol_unit)
 
       use arrays, only:  cftmq, pprimch,ffprimch, presch,fpolch
       use arrays, only:  psi0, psiB, lambda, iscale
-      use arrays, only:  nin, Rin, Zin
+      use arrays, only:  nin, Rin, Zin, R0, Z0
       use arrays, only:  nt1, Rt1, Zt1, T1, dRt1, dZt1, dT1, w1
       use arrays, only:  Rt3, Zt3, ntot
       use arrays, only:  B0vac, Rmid, Rmaxis, Zmaxis
       use arrays, only:  iptype, csol,reps,rkappa,delta,d1,d2,d3
-
+      use arrays, only:  iprintEFIT, T1_mil, T1_mil2, kLag, epsLag
+      
       implicit double precision(a-h, o-z)
       character*20 case_out(6), file_out
 
@@ -2051,6 +2051,8 @@ c      close(sol_unit)
       complex *16 ima, zc1(nt1), dzdtc1(nt1)
 
       ima = (0.0d0,1.0d0)
+      pi=4.0d0*datan(1.0d0)
+      
       neqdsk=21
       write(*,*) 'EFITin0', npsi,nin,nchq
 c      write(*,*) 'EFITin',pprimch(1:nchq),ffprimch(1:nchq)
@@ -2146,10 +2148,44 @@ c      write(*,*) 'error3', dzdtc1(1:nt1), w1(1:nt1)
      1           REFo(i), ZEFo(j), iexterior, rndEfo(ij), 
      2           tndEfo(ij), psirz(ij))
 
+            write(*,*) 'iexterior',iprintEFIT,iexterior,psirz(ij)
             if (iexterior.eq.0) then
                psirz(ij)=psirz(ij)/lambda+psiB
             else
-               psirz(ij)=(-1.0d-3)/lambda+psiB !sign(1.0d0,lambda)
+               if (iprintEFIT.eq.1) then
+                  psirz(ij)=(-1.0d-3)/lambda+psiB !sign(1.0d0,lambda)
+               else if (iprintEFIT.eq.2) then !use the artificial contours outside last closed flux surface
+                  
+                  tRZ =atan2(ZEFo(j)-Z0,REFo(i)-R0)
+                  rRz =sqrt((ZEFo(j)-Z0)**2+(REFo(i)-R0)**2)
+                  if (tRZ.lt.0) then 
+                     tRZ=2.0d0*pi+tRZ
+                  end if
+
+                  !write(*,*) 't1_mil',t1_mil(1:nt1+1)
+                  !write(*,*) 't1_mil2',t1_mil2(1:nt1+1)
+                  nout=1
+                  call IntLag1np(nt1+1,t1_mil2, t1_mil, kLag
+     1                 ,nout,tRZ, tRZ2,  dtRZ2, epsLag)
+                  
+                  write(*,*) 'tRZ,tRZ2',tRZ,tRZ2
+                  
+                  alpha=dasin(delta)
+                  rlast=R0*reps*sqrt(dcos(tRZ2+alpha*dsin(tRZ2))**2+
+     1                 (rkappa*dsin(tRZ2))**2)
+
+                  write(*,*) 'R,Z',REFo(i), ZEFo(j),tRZ,rRZ, rlast
+                  if (rRz.lt.rlast) then
+                      psirz(ij)=psiB !(1.0d0-(rRz/rlast))/lambda+psiB
+           write(*,*) 'wrong in calculating radius',rRz,rlast,psirz(ij) 
+                  else
+                     psirz(ij)=(1.0d0-(rRz/rlast))/lambda+psiB
+             write(*,*) 'good in calculating radius',rRz,rlast,psirz(ij) 
+                     
+                  end if
+
+                  
+               end if
             end if
             if ((iptype.eq.0).and.(iexterior.eq.0)) then
                call Solovev(REFo(i),ZEFo(j),csol,d1,d2,d3,
@@ -4112,7 +4148,7 @@ c         write(*,*) 'fpolcon2fit',fpolcon2fit
 
 c      ksamp3=ksamp2/4 
       pi=4.0d0*datan(1.0d0)
-      write(*,*) 'fitMil',ncon
+
 c      write(*,*) 'psiRintot',psiRcon(1:ncon*ksamp3)
       do k=1, ncon
          istart=icon(k)
@@ -4253,7 +4289,6 @@ c            write(*,*) 'iiterf,delb', iiterf,real(delb(1:3))
          deltamil(k)=dsin(b3)
       end do
 
-      write(*,*) 'fitMil2',ncon,R0mil(1:ncon)
       return
       end 
 
@@ -6763,6 +6798,7 @@ c      write(*,*) 'qout',qout
 
       use arrays, only: nt2, nr, rnd, kcheb, ucoeff, nsub
       use arrays, only: cftmsub, bnodes, Rmap0, Zmap0
+      use arrays, only: R0,Z0,reps,rkappa, delta, ibtype
 
       implicit real*8 (a-h,o-z)
       
@@ -6775,6 +6811,9 @@ c      write(*,*) 'qout',qout
       complex *16 ucin(nt2)
      
       ima = (0.0d0,1.0d0)
+      
+      pi = 4.0d0*datan(1.0d0)
+      
       zc0=Roff+ Zoff*ima 
       dist=dsqrt((Roff-Rmap0)**2+(Zoff-Zmap0)**2)
 c      write(*,*) 'dist,rzdimmin',dist,rzdimmin
@@ -6802,7 +6841,82 @@ c         write(*,*) 'exterior point1'
 
       rndm=dsqrt(w0r**2+w0i**2)
       tndm=datan2(w0i,w0r) 
+
+          write(*,*) 'zc0',zc0
+      write(*,*) 'rndm,tndm',w0r,w0i,rndm,tndm
      
+      if (ibtype.eq.1) then
+         alpha=dasin(delta)
+c        write(*,*) 'alpha',R0,Z0,reps,rkappa, delta, alpha 
+         if ((zoff.lt.(Z0+rkappa*reps*R0)).and.
+     1      (zoff.gt.(Z0-rkappa*reps*R0))) then
+         t=dasin((Zoff-Z0)/R0)/reps/rkappa
+         Rmax=R0*(1+reps*dcos(t+alpha*dsin(t)))
+         Rmin=R0*(1+reps*dcos(pi-t+alpha*dsin(pi-t)))
+
+         write(*,*) 't',t, Rmax, Rmin
+         if ((Roff.gt.Rmin).and.(Roff.lt.Rmax)) then
+              iexterior= 0 !interior
+
+              write(*,*) 'possible interior point: rnd,tnd',rndm,tndm
+              w0r2=w0/w2pi
+              w0i2=-ima*w0/w2pi
+              rndm=dsqrt(w0r2**2+w0i2**2)
+              tndm=datan2(w0i2,w0r2)
+              if (rndm.ge.1.0d0) then
+                 psi=-1.0d0
+                 rndm=-1.0d0
+                 tndm=0.0d0
+                 iexterior= 4
+                 write(*,*) 'exterior point4' !make cauchy integral 0
+                 return
+              end if
+
+         write(*,*) 'interior point(corrected): rnd,tnd',rndm,tndm
+
+              do i=1, nr-1
+                 if (rndm.le.rnd(1)) then
+               isub=1
+               xch=(rndm-bnodes(isub))/(bnodes(isub+1)-bnodes(isub))
+c               write(*,*) 'very close to origin: smaller than rnd(1)'
+               exit
+            else if((rnd(i).le.rndm).and.(rnd(i+1).gt.rndm)) then
+               isub=(i-1)/kcheb+1
+               xch=(rndm-bnodes(isub))/(bnodes(isub+1)-bnodes(isub))
+               if (xch.gt.1.0d0) then
+                  isub=isub+1
+                  xch=(rndm-bnodes(isub))/(bnodes(isub+1)-bnodes(isub))
+               end if
+               exit
+            else if ((rnd(nr).lt.rndm)) then
+               isub=nsub
+               xch=(rndm-bnodes(nsub))/(bnodes(nsub+1)-bnodes(nsub))
+               exit
+            end if
+              end do
+    
+         else ! R is outside [Rmin,Rmax]
+            psi=0.0d0
+         rndm=-1.0d0
+         tndm=0.0d0
+         iexterior= 5
+         write(*,*) 'exterior point5'
+         return
+         end if
+      
+        else ! z is outside [zmin,zmax]
+
+         psi=0.0d0
+         rndm=-1.0d0
+         tndm=0.0d0
+         iexterior= 6
+         write(*,*) 'exterior point6'
+         return
+           end if
+
+
+        else ! if not ibtype.eq.1
+           
       if (rndm.ge.1.0d0) then
          psi=-1.0d0
          rndm=-1.0d0
@@ -6860,7 +6974,9 @@ c               write(*,*) 'very close to origin: smaller than rnd(1)'
          end do
       end if
 
-  
+
+      end if                    ! ibtype.eq.1
+      
       write(*,*) 'fine1',isub,xch
       do i=1,kcheb
          do j=1,nt2

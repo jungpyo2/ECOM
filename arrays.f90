@@ -80,7 +80,7 @@ module arrays
   real * 8, dimension(1000) :: psiflx, Vloop
 
   real * 8, dimension(:), allocatable :: Rin, Zin, Tin
-  real * 8, dimension(:), allocatable :: Rt1, Zt1, T1, dRt1, dZt1
+  real * 8, dimension(:), allocatable :: Rt1, Zt1, T1, dRt1, dZt1, T1_mil, T1_mil2
   real * 8, dimension(:), allocatable :: psiEF,psiiEF, pprimEF, ffprimEF, fpolEF,qpsiEF, REF, ZEF
   real * 8, dimension(:), allocatable :: Rt2, Zt2, T2, dRt2, dZt2
   real * 8, dimension(:), allocatable :: Rt3, Zt3, rnd, tnd, blength, bnodes
@@ -488,8 +488,8 @@ contains
     implicit none
 
     allocate (Rin(nin+1), Zin(nin+1), Tin(nin+1))
-    allocate (Rt1(nt1+1), Zt1(nt1+1), T1(nt1+1))  
-    allocate (dRt1(nt1+1), dZt1(nt1+1))  
+    allocate (Rt1(nt1+1), Zt1(nt1+1), T1(nt1+1), T1_mil(nt1+1))  
+    allocate (dRt1(nt1+1), dZt1(nt1+1),T1_mil2(nt1+1))  
     allocate (dWdZ1(nt1+1), dWdZZ1(nt1+1)) 
     allocate (w1(nt1), wsaved(nt1*nt1), w7saved(nt1*nt1))
 
@@ -497,7 +497,7 @@ contains
     allocate (fbf(nt1*ksamp+1), zbf(nt1+1), zmbf(nt1*ksamp+1))
     allocate (dwdz1m(nt1*ksamp+1),dwdzz1m(nt1*ksamp+1))
     allocate (w7(2*nt1*nt1+10*nt1+10000), w8(10*nt1*ksamp), w9(nt1,nt1)) 
-    Rt1 = 0.0; Zt1 = 0.0; T1 = 0.0
+    Rt1 = 0.0; Zt1 = 0.0; T1 = 0.0; T1_mil=0.0; T1_mil2=0.0
     dRt1 = 0.0; dZt1 = 0.0; w1= 0.0
 
   end subroutine allocarray1
@@ -673,7 +673,7 @@ end subroutine allocarray2
 
     deallocate (Rin, Zin, Tin,  Rt1, Zt1, T1, dRt1, dZt1, dwdz1)
     deallocate (Rt2, Zt2, T2, dRt2, dZt2, dwdz2)
-    deallocate (rnd, tnd, Rt3, Zt3, dzdw3)
+    deallocate (rnd, tnd, Rt3, Zt3, dzdw3,T1_mil, T1_mil2)
     deallocate (dpsidr, dpsidrr, u, ur, uth, utt)
     deallocate (urr, urt, ucoeff, urcoeff, urrcoeff)
     deallocate (g, f, psii, psiex) 
