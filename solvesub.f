@@ -181,8 +181,77 @@ c      write(*,*) 'rndi, tndi, Rt3i, Zt3i', rndi, tndi, Rt3i, Zt3i
       return
       end
 
+      subroutine findpsim(rndm, tndm, psim)
+
+      use arrays, only: nt2, nr, rnd, kcheb, ucoeff, urcoeff, urrcoeff
+      use arrays, only: cftmsub, bnodes, zk
+      use arrays, only: isymud, nsub
+      
+      implicit real*8 (a-h,o-z)
+
+      
+
+      real *8  ucinr(nt2), urcinr(nt2), urrcinr(nt2)
+      real *8  ucini(nt2), urcini(nt2), urrcini(nt2)  
+      real *8  chcoeff(kcheb)
+      real *8  uch(kcheb), urch(kcheb), uthch(kcheb)
+      real *8  urrch(kcheb)
+      complex *16 ima, wzm, cint
+      complex *16 ucin(nt2)
+      complex *16 urcin(nt2), urrcin(nt2)
+
+      ima = (0.0d0,1.0d0)
+      pi = 4.0d0*datan(1.0d0)
+      twopi=2.0d0*pi
+
+         if (dabs(rndm).le.1.0d-8) then
+            rndm=1.0d-8
+         end if
+      
+        
+         bnodes(1)=0.0d0
+
+         do iisub=2,nsub+1
+            if (rndm.lt.bnodes(iisub)) then
+               isub=iisub-1
+               xch=(rndm-bnodes(isub))/(bnodes(isub+1)-bnodes(isub))
+               exit
+            end if
+         end do
+
+         
+         do i=1,kcheb
+            do j=1,nt2
+               inext=((isub-1)*kcheb+i)+(j-1)*nr
+               ucin(j)=ucoeff(inext)
+               urcin(j)=urcoeff(inext)
+               urrcin(j)=urrcoeff(inext)
+            end do
+            call ftsolnoffth0pi(tndm,nt2,ucin,urcin,urrcin,
+     1           uch(i),urch(i),urrch(i))
+         end do
+         call chftransq(chcoeff,uch,kcheb,cftmsub)
+         call chfit(xch, kcheb, chcoeff, um)
+
+
+
+         wzm =rndm*exp(ima*tndm)
+         call fft_cauchy(nt2,wzm,zk,cint)
+         Rt3m=cint
+         Zt3m=-ima*cint
+
+
+      
+         psim = um*dsqrt(Rt3m)
+
+         
+      return
+      end
    
-      subroutine findmagaxis(rndi, tndi, dpsidri, dpsidti 
+
+
+
+      subroutine findmagaxis(inext_maxpsi, rndi, tndi, dpsidri, dpsidti 
      1     ,dpsidrri ,dpsidrti, dpsidtti, Rt3i, Zt3i, psii
      2     , dpsi2)
 
@@ -219,6 +288,24 @@ c      eps7=1.0d-18 !14
       Zt3m=Zt3i
       psim=psii
 
+
+      ith=inext_maxpsi/nr+1
+      ir=inext_maxpsi-(ith-1)*nr
+      a = rnd(ir-1)
+      b = rndm
+      c = rnd(ir+1)
+
+      hnt=nt2/2
+      if (abs(ith-hnd).lt.10) then
+         d = a
+         a = -c
+         b = -b
+         c = -d
+      end if
+
+
+      e = 0
+
       iimag=0
       maxiimag=10
       do while ((iimag.eq.0).or.
@@ -227,18 +314,91 @@ c      eps7=1.0d-18 !14
          iimag=iimag+1
 
          if (isymud.eq.1) then  ! for up-down symmetric, tndm=0.0d0 or tndm=pi
-            drm=-dpsidrm/dpsidrrm 
-            rndm=rndm+drm
+                   
+            call findpsim(abs(a), tndm, psia) !rnd to psi
+            call findpsim(abs(b), tndm, psib)
+            call findpsim(abs(c), tndm, psic)
+
+            pbc = psib-psic
+            pba = psib-psia
+            ba = b-a
+            bc = b-c
+            d=b-0.5d0*(pbc*ba**2.0d0-pba*bc**2.0d0)/(ba*pbc-bc*pba)
+
+            if (((ba*pbc-bc*pba).ne.0).and.(e.eq.0)) then !2nd interpolating
+
+               drm = abs(d) - rndm
+               rndm = abs(d)
+               if (d.ge.c) then
+                  a = b
+                  b = c
+                  c = d
+               else if (d.lt.a) then
+                  c = b
+                  b = a
+                  a = d
+               else if ((d.ge.a).and.(d.lt.b)) then
+                  c = b
+                  b = d
+               else if ((d.ge.b).and.(d.lt.c)) then
+                  a = b
+                  b = d
+               end if
+            else if (((ba*pbc-bc*pba).eq.0).or.(e.ne.0)) then !Nelder Mead method
+               e=e+1
+               if (psia.le.psic) then
+                  b = a
+                  psib = psia
+                  a = c
+                  psia = psic
+                  c = b
+                  psic = psib
+               end if
+
+               r = 2.0d0*a - c
+               call findpsim(abs(r), tndm, psir)
+               if (psir.ge.psia) then !r good > choose good bt s r
+                  s = a + 2.0d0*(a-c)
+                  call findpsim(abs(s), tndm, psis)
+                  if (psis.ge.psir) then
+                     c = a
+                     psic = psia
+                     a = s
+                     psia = psis
+                  else if (psis.lt.psir) then
+                     c = a
+                     psic = psia
+                     a = r
+                     psia = psir
+                  end if
+                  drm = a-c
+               else if (psir.lt.psia) then ! a good > compare r c > choose c close to good r c
+                  if (psir.ge.psic) then
+                     cc = a + (r-a)/2.0d0
+                  else if (psir.lt.psic) then
+                     cc = a + (c-a)/2.0d0
+                  end if
+                  call findpsim(abs(cc), tndm, psicc)
+                  if (psicc.ge.psia) then ! c good than a > new a = cc
+                     c = a
+                     psic = psia
+                     a = cc
+                     psia = psicc
+                     drm = a-c
+                  else if (psicc.lt.psia) then ! a good than cc > c = cc
+                     c = cc
+                     psic = psicc
+                     drm = 0.0d0
+                  end if
+               end if
+               rndm = abs(a)
+            end if
+
 c            tndm=0.0d0
             if (dabs(rndm).le.1.0d-8) then
                rndm=1.0d-8
                write(*,*) 'rndm',rndm
                exit !return
-            else if (rndm.lt.0.0d0) then
-               rndm=dabs(rndm)
-               write(*,*) 'tndm changed from',tndm
-               tndm=mod(tndm+pi,twopi)
-               write(*,*) 'to',tndm
             end if
          else                   ! for up-down asymmetric
             
@@ -255,6 +415,7 @@ c            tndm=0.0d0
             else
                drm=-dpsidrm/dpsidrrm 
                rndm=rndm+drm
+
                if (rndm.le.0.0d0) then
                   rndm=1.0d-8
                   write(*,*) 'rndm',rndm
@@ -264,6 +425,7 @@ c            tndm=0.0d0
          end if
          
          write (*,*) 'findmagaxis', iimag, rndm, tndm, drm, dtm
+
    
 c         do i=1, nr-1
 c            if (rndm.le.rnd(1)) then

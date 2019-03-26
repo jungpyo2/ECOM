@@ -508,9 +508,9 @@
      1           , dpsidrm, dpsidtm, dpsidrrm ,dpsidrtm, dpsidttm
      2           , Rt3m, Zt3m, psim)
          end if
-         call findmagaxis(rndm, tndm, dpsidrm, dpsidtm 
+         call findmagaxis(inext_maxpsi, rndm, tndm, dpsidrm, dpsidtm 
      1        ,dpsidrrm ,dpsidrtm, dpsidttm, Rt3m, Zt3m, psim
-     2        ,dpsim2)
+     2        ,dpsim2)   !JunHSong
 
          maxpsiongird=maxpsi/psim
          maxpsi=psim
@@ -560,7 +560,9 @@
       end if
 
       if (iremap.eq.1) then
-         Rmap0 = Rmaxis-0.1*diffpsich !Rmaxpsi: put some distance to find magaxis routine
+         Rmap0 = Rmaxis   !
+!       JunHsong: remove the shift by findmagaxis algorithm corrections
+!        -0.1*diffpsich !Rmaxpsi: put some distance to find magaxis routine
          Zmap0 = Zmaxis         !Zmaxpsi
       end if
 
