@@ -240,6 +240,9 @@
          pprimch(1:nchq)=pprimch0(1:nchq)*lambda
          chcoeffpp(1:nchq)=chcoeffpp0(1:nchq)*lambda
       else if (iptable.eq.2) then ! make pprimch from pressure for iptable=2
+
+         call spline(rhoEF
+     1           , fpolEF, bfpol ,cfpol,dfpol,npsi) ! JHSONG
          do i= 1, nchq
             rhochpsi=rhoch(i)
             call ispline(rhochpsi,rhoEF
