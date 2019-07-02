@@ -543,7 +543,7 @@ c         end if
      2           , Rt3m, Zt3m, psim)
          end if
         write (*,*) 'work2-2'
-         call findmagaxis(rndm, tndm, dpsidrm, dpsidtm 
+         call findmagaxis(inext_maxpsi, rndm, tndm, dpsidrm, dpsidtm 
      1        ,dpsidrrm ,dpsidrtm, dpsidttm, Rt3m, Zt3m, psim
      2        ,dpsim2)
 
