@@ -92,6 +92,7 @@ c      real *8 psiex(ntot)
       real *8 ddalphadpsidt0(nttin*ntpsi),alphatheta0ch(nttin*ncon0)
       real *8 dalphatt(nttin*ntpsi),bpR(nttin*ntpsi)
       real *8 RtrinT(nttin*ntpsi),ZtrinT(nttin*ntpsi)
+      real *8 phitrin(nttin*ntpsi) !JPL
 
       real *8 Rgeom(ntpsi),ageom(ntpsi),gdpsi_av(ntpsi)
       real *8 tzeros1(ntpsi), tzeros2(nttin*ntpsi)
@@ -158,7 +159,7 @@ c      real *8 psiex(ntot)
          fpolcon(1:ncon)= fpolsgn*dabs(F0)
          fpolch(1:ncon)= fpolcon(1:ncon)
          call findcontour(ncon,psicon,nr,nt2,rnd,tnd,psi,dpsidr,dpsidrr
-     1        ,ur,uth,urr,urt,rndcon,tcon,urcon,utcon)
+     1        ,rndcon,tcon,urcon,utcon)
 
          call sortcontour(ncon,psicon,zk,dzdw2k,rndcon
      1        ,tcon,urcon,utcon,Rcon,Zcon,icon,Ravg,Zavg
@@ -191,7 +192,7 @@ c      real *8 psiex(ntot)
          psicon(1:ncon)=psiichq(1:nchq)
 
          call findcontour(ncon,psicon,nr,nt2,rnd,tnd,psii,dpsidr,dpsidrr
-     1        ,ur,uth,urr,urt,rndcon,tcon,urcon,utcon)
+     1        ,rndcon,tcon,urcon,utcon)
 
          call sortcontour(ncon,psicon,zk,dzdw2k,rndcon
      1        ,tcon,urcon,utcon,Rcon,Zcon,icon,Ravg,Zavg
@@ -281,8 +282,8 @@ c            pprimch=pprimch/factorl
          write(*,*) 'q0,F0',q0,F0
         
 
-         call scalesol(lambda, psiB, psi)
-         call calDer(psiR, psiZ, psiRR, psiRZ, psiZZ)
+         !call scalesol(lambda, psiB, psi)
+         !call calDer(psiR, psiZ, psiRR, psiRZ, psiZZ)
 
          
 c         FFp(1:ncon)=FF0*(1-(1-psiichq(1:ncon))**FFin)**FFout
@@ -319,7 +320,7 @@ c         psicon(1:ncon)=psiEF(3:npsi)
 c         qpsiconex(1:ncon)=qpsiEF(3:npsi)
       
          call findcontour(ncon,psicon,nr,nt2,rnd,tnd,psii,dpsidr,dpsidrr
-     1        ,ur,uth,urr,urt,rndcon,tcon,urcon,utcon)
+     1        ,rndcon,tcon,urcon,utcon)
     
          call sortcontour(ncon,psicon,zk,dzdw2k,rndcon
      1        ,tcon,urcon,utcon,Rcon,Zcon,icon,Ravg,Zavg
@@ -330,8 +331,8 @@ c         qpsiconex(1:ncon)=qpsiEF(3:npsi)
          call calfint(ncon,psicon,Rcon,Zcon,tmaxp,icon
      1        ,psiRcon,psiZcon,Ia,Ib,Ic,Lp,Id)
 c         write(*,*) 'Ic0',lambda,Ic(1:ncon)
-         call scalesol(lambda, psiB, psi)
-         call calDer(psiR, psiZ, psiRR, psiRZ, psiZZ)
+!         call scalesol(lambda, psiB, psi)
+!         call calDer(psiR, psiZ, psiRR, psiRZ, psiZZ)
  
          if (ifpol.eq.0) then
             call findFbyFFp0(ncon,lambda,psiichq,ffprimch,
@@ -362,7 +363,7 @@ c      write(*,*) 'qcon',qcon(1:ncon)
       if (itrinity.eq.1) then 
          call findtpsifromtrho(ncon)
          call findcontour2der(ntpsi,tpsi,nr,nt2,rnd,tnd,psii
-     1        ,dpsidr,dpsidrr,ur,uth,urr,urt,utt,trnd,ttnd,tur,tut
+     1        ,dpsidr,dpsidrr,trnd,ttnd,tur,tut
      2        ,turr,turt,tutt)
          
          if (iptype.eq.0) then  !Solovev solutions
@@ -424,6 +425,10 @@ c      write(*,*) 'qcon',qcon(1:ncon)
          
       end if                    !itrinity=1
 
+
+      call scalesol(lambda, psiB, psi)
+      call calDer(psiR, psiZ, psiRR, psiRZ, psiZZ)
+
       if (icheckerr.eq.1) then
          if ((iptype.eq.3) .and.(ibtype.eq.3)) then
             call findqprofile(ncon,lambda,psiichq,qcon,cftmq,
@@ -457,9 +462,10 @@ c      write(*,*) 'qcon',qcon(1:ncon)
               presch(i)=presch(i)+spxb((k-1)*nchq+i)*pprimch(k)
            end do
       end do
-      presch(1:nchq)=presch(1:nchq)/(2.0d0*(lambda))
-
-
+      presch(1:nchq)=presch(1:nchq)/(2.0d0*(lambda)) !final scaling
+      if (itftype.ne.0) then
+          ptflowch(1:nchq)=ptflowch(1:nchq)/(-lambda) !final scaling
+      end if 
 
       if (iecom.eq.2) then   !ECOMQ
 c         if(iqtype.ne.1) then
@@ -550,7 +556,7 @@ c     qpsich=-qpsich
          write(2,*) 'p [Pa]'
          write(2,*) presch(1:nchq)
         
-         if (itftype.eq.0) then
+         if (itftype.ne.0) then
             rmin=R0*reps
             write(*,*) 'rmin',rmin,lambda
             tempIb(1:ncon)=0.0d0
@@ -618,7 +624,7 @@ c               write(*,*) 'temp1,temp2',temp1,temp2
             write(2,*) 'dp_omega/dPsi'
             write(2,*) ptfprimch(1:nchq)
             write(2,*)  'pressure due to flow :nmR^2omega^2/2 [Pa]'
-            write(2,*) ptflowch(1:nchq)/(-lambda)
+            write(2,*) ptflowch(1:nchq)
             write(2,*) 'flow Mach number : sqrt(2*ptf/p)'
             write(2,*) dsqrt(2*ptflowch(1:nchq)/presch(1:nchq))
             write(2,*) 'Btheta^2 [T^2]'
@@ -789,12 +795,15 @@ c         write(*,*) 'dalphapsidt0',ddalphadpsidt0(1:ntpsi*nttin)
          call calmetric(ntpsi,tpsi,tRcon,tZcon,ttmaxp,itcon,psiRtcon
      1        ,psiZtcon,tfpolcon,tdfdpsi,tdpdpsi,dbtotdpsi,dalphadpsi0
      2        ,nttin,ttin,gradpar,Rtrin,Ztrin,bpR,btot,bpol,gbdrift
-     3        ,gbdrift0,cvdrift,cvdrift0,shatlocal1,dalphatt)
+     3        ,gbdrift0,cvdrift,cvdrift0,shatlocal1,dalphatt,phitrin)
+
+
 
          gdpsi_av=0.0d0
          do i=1,ntpsi
             do j=1,nttin
                gdpsi_av(i)=gdpsi_av(i)+bpR((i-1)*nttin+j)
+         !phitrin((i-1)*nttin+j)=dalphadpsi0((i-1)*nttin+j)*tfpolcon(i) !JPL 
             end do
             gdpsi_av(i)=gdpsi_av(i)/nttin
          end do
@@ -887,8 +896,12 @@ c            end if
          write(fiter22,*) 'alpha(1:ntpsi)'
          write(fiter22,*)  talphamil(1:ntpsi)
 
+         write(fiter22,*) 'Phitrin(1:ntpsi*nttin)'
+         write(fiter22,*) phitrin
          write(fiter22,*) 'Rtrin(1:ntpsi*nttin)'
          write(fiter22,*) Rtrin
+         write(fiter22,*) 'Ztrin(1:ntpsi*nttin)'
+         write(fiter22,*) Ztrin
          write(fiter22,*) 'Btot(1:ntpsi*nttin)'
          write(fiter22,*) btot
          write(fiter22,*) 'Bpol(1:ntpsi*nttin)'
@@ -1198,7 +1211,7 @@ c     1     ,qcon)
 c      write(*,*) 'psiichq',psiichq(1:nchq)
 c      write(*,*) 'psicon',psicon(1:ncon)
       call findcontour(ncon,psicon,nr,nt2,rnd,tnd,psii,dpsidr,dpsidrr
-     1        ,ur,uth,urr,urt,rndcon,tcon,urcon,utcon)
+     1        ,rndcon,tcon,urcon,utcon)
 c      write(*,*) 'psicon',psicon(1:ncon)
       call sortcontour(ncon,psicon,zk,dzdw2k,rndcon
      1        ,tcon,urcon,utcon,Rcon,Zcon,icon,Ravg,Zavg
@@ -3408,7 +3421,6 @@ c         write(*,*) "finished sortcontour0 for icon=",k
 
          end if
 c         write(*,*) 'Rcon3',Rcon((k-1)*ksamp3+1:k*ksamp3)
-
       end do
       icon(ncon+1)=itotc+1
      
@@ -3571,17 +3583,16 @@ c            write(*,*) 'shatlocal2', shatlocal2(ist:ist+nttin-1)
       end
 
       subroutine findcontour2der(ncon,psicon,nr,ntheta,rnd,tnd,psi
-     1     ,dpsidr,dpsidrr,ur,uth,urr,urt,utt,rcon,tcon,urcon,utcon
+     1     ,dpsidr,dpsidrr,rcon,tcon,urcon,utcon
      2     ,urrcon,urtcon,uttcon)
-      use arrays, only: kcheb,cftmsub, bnodes, nsub
-
+      use arrays, only: kcheb,cftmsub, bnodes, ur,nsub
+      use arrays, only: ur,uth,urr,urt,utt
       implicit real*8 (a-h,o-z)
       save
 
       real *8 maxu
 c      real *8 rndin(nsub),
       real *8 psicon(*),rnd(*),tnd(*),psi(*),dpsidr(*)
-      real *8 ur(*),uth(*),urr(*),urt(*),utt(*)
       real *8 urcon(*), utcon(*),urrcon(*), urtcon(*),uttcon(*)
       real *8 dpsidrr(*),rcon(*),tcon(*)
       real *8 chcoeff(kcheb), psisub(kcheb)
@@ -3755,7 +3766,6 @@ c               end if
 c               temp1=temp2
 c            end do
                
-         
          end do
          itotcp=itotc+1
 
@@ -3770,17 +3780,16 @@ c
 c
 c
       subroutine findcontour(ncon,psicon,nr,ntheta,rnd,tnd,psi,dpsidr,
-     1     dpsidrr,ur,uth,urr,urt,rcon,tcon,urcon,utcon)
+     1     dpsidrr,rcon,tcon,urcon,utcon)
 
       use arrays, only: kcheb,cftmsub, bnodes, nsub
-
+      use arrays, only: ur,uth,urr,urt
       implicit real*8 (a-h,o-z)
       save
 
       real *8 maxu
 c      real *8 rndin(nsub),
       real *8 psicon(*),rnd(*),tnd(*),psi(*),dpsidr(*)
-      real *8 ur(*),uth(*),urr(*),urt(*)
       real *8 urcon(*), utcon(*)
       real *8 dpsidrr(*),rcon(*),tcon(*)
       real *8 chcoeff(kcheb), psisub(kcheb)
@@ -4829,7 +4838,7 @@ c      write(*,*) 'fouttf1',fouttf1
       subroutine calmetric(ncon,psicon,Rcon,Zcon,tmaxp,icon,psiRcon
      1        ,psiZcon,fpolcon,dfdpsi,dpdpsi,dBdpsi,dalphadpsi0
      2     ,nttin,ttin,gradpar,Rtrin,Ztrin,bpR,btot,bpol,gbdrift
-     3     ,gbdrift0,cvdrift,cvdrift0,tshatlocal,dalphatt)
+     3     ,gbdrift0,cvdrift,cvdrift0,tshatlocal,dalphatt,phitrin)
 
       use arrays, only:  nt2, ksamp2, dpsidrho,epsLag, kLag
 
@@ -4845,6 +4854,7 @@ c      write(*,*) 'fouttf1',fouttf1
       real *8 fpolcon(*),dfdpsi(*),dpdpsi(*),dBdpsi(*),dalphadpsi0(*)
       real *8 gradpar(*), btot(*),bpol(*), gbdrift(*),gbdrift0(*)
       real *8 cvdrift(*),cvdrift0(*),tshatlocal(*),dalphatt(*)
+      real *8 phitrin(*)
       real *8 sgradpar(nttin),sbtot(nttin),sbpR(nttin)
       real *8 sRtrin(nttin),sZtrin(nttin),sbpol(nttin),salphapsi0(nttin)
       real *8 spsidott(nttin),sdBdtheta(nttin),sdalphat(nttin)
@@ -4906,6 +4916,9 @@ c      write(*,*) 'psiRintot',psiRcon(1:ncon*ksamp3)
       do k=1, ncon
          do j=1,nttin
             kj=(k-1)*nttin+j
+            if (isNaN(gradpar(kj))) gradpar(kj)=0.0 !JPL
+            if (isNaN(alphapsi0(kj))) alphapsi0(kj)=0.0 !JPL
+            if (isNaN(dalphadpsi0(kj))) dalphadpsi0(kj)=0.0 !JPL           
             gbdriftphi=-bpol(kj)*dBdpsi(kj)
      1           -(psidott(kj)*dBdtheta(kj)/Rtrin(kj)**2)
             gbdrifttheta=fpolcon(k)*dBdpsi(kj)*(gradpar(kj)*btot(kj))
@@ -4914,9 +4927,9 @@ c      write(*,*) 'psiRintot',psiRcon(1:ncon*ksamp3)
             alphaphi=1.0d0
             alphatheta=-fpolcon(k)/(gradpar(kj)*btot(kj)*Rtrin(kj)**2)
             alphapsi=-dfdpsi(k)*alphapsi0(kj)-fpolcon(k)*dalphadpsi0(kj)
-        
    
-
+            phitrin(kj)=alphapsi0(kj)*abs(fpolcon(k))/(2.0d0*pi) !JPL
+            if (isNaN(phitrin(kj))) phitrin(kj)=0.0 
             dalphadpsi(j)=alphapsi
 c           write(*,*) 'alpahpsi',dfdpsi(k),alphapsi0(kj),fpolcon(k)
 c     1           ,dalphadpsi0(kj)
@@ -4941,6 +4954,7 @@ c     1          ,alphatheta ,cvdriftpsi,alphapsi
 
          end do
 
+         !write(*,*) 'phitrin',k,phitrin((k-1)*nttin+1:(k)*nttin)
 c         write(*,*) 'temp5lag', dalphadpsi(1:nttin)
 
          call IntLag1np(nttin,ttin,dalphadpsi,kLag,nttin,ttin,
@@ -5049,7 +5063,6 @@ c         write(*,*) 'ttintmp',ttintmp(1:nttin),ttin(1:nttin)
      1     /(Rin(1:nin+1)-Rmaxis)   !dtheta/dZ
       temp3(1:nin+1)=(psiRin(1:nin+1)*temp2(1:nin+1)
      1     -psiZin(1:nin+1)*temp1(1:nin+1))/Rin(1:nin+1)/lambda !(grad phi times grad Psi) cdot grad theta)
-
       BpR(1:nin+1)=dsqrt(BpR2(1:nin+1)) !magnitude of BpR
       temp4(1:nin+1)=dsqrt(BpR2(1:nin+1))/Rin(1:nin+1) !magnitude of Bp
       temp5(1:nin+1)=dsqrt(BR2(1:nin+1))/Rin(1:nin+1) !magnitude of Btot
@@ -5205,7 +5218,6 @@ c         write(*,*) 'Zin-sR4',sZ(1:nttin)
 
 c      Jac(1:nttin)=1.0d0/(sbtot(1:nttin)*sgradpar(1:nttin))
 c      alphat(1:nttin)=fpolin*Jac(1:nttin)/sR(1:nttin)**2.0d0
-
       alphapsi0(1)=0.0d0
       do i=1,nttin
          dalphapsi0=0.0d0
@@ -5216,7 +5228,6 @@ c      alphat(1:nttin)=fpolin*Jac(1:nttin)/sR(1:nttin)**2.0d0
          alphapsi0(i+1)= alphapsi0(i)+ dalphapsi0
       end do
 
-    
 
 c      write(*,*) 'sbtot',sbtot(1:nttin)
 c      write(*,*) 'sgradpar',sgradpar(1:nttin)
@@ -5274,6 +5285,7 @@ c      write(*,*) 'psiRintot',psiRcon(1:ncon*ksamp3)
          thin(nin+1)=tmaxp(istart)+2.0d0*pi
          psiRin(nin+1)=psiRcon(istart)
          psiZin(nin+1)=psiZcon(istart)
+
 
          call findsinglemetric0(nin,Rin, Zin
      1     ,thin, psiRin, psiZin, fpolcon(k)
@@ -5365,7 +5377,6 @@ c      BR2(1:nin+1)= BpR2(1:nin+1)+fpolin**2.0d0
      1     /(Rin(1:nin+1)-Rmaxis)   !dtheta/dZ
       temp3(1:nin+1)=(psiRin(1:nin+1)*temp2(1:nin+1)
      1     -psiZin(1:nin+1)*temp1(1:nin+1))/Rin(1:nin+1)/lambda !(grad phi times grad Psi) cdot grad theta)
-
       temp5(1:nin+1)=dsqrt(BR2(1:nin+1))/Rin(1:nin+1) !magnitude of Btot
 
 c      temp8(1:nin+1)=1.0d0/dabs(temp3(1:nin+1))
@@ -5373,7 +5384,6 @@ c     1       /Rin(1:nin+1)**2
       temp8(1:nin+1)=1.0d0/temp3(1:nin+1)
      1       /Rin(1:nin+1)**2                    ! 1/(B dot grad theta)/R^2
 
-c      write(*,*) 'BpR23',(BpR2(1:nin+1))
 c      write(*,*) 'Rin3',Rin(1:nin+1)
 c      write(*,*) 'Bp3',dsqrt(BpR2(1:nin+1))/Rin(1:nin+1)
 c      write(*,*) 'Btot3',temp1(1:nin+1),lambda
@@ -5419,7 +5429,6 @@ c      write(*,*) 'Btot3',temp1(1:nin+1),lambda
          dalphapsi0=dalphapsi0*dttin(i)/2.0d0*(2.0d0*pi)
          salphapsi0(i+1)= salphapsi0(i)+ dalphapsi0
       end do
-
       salphatheta0(1:nttin)=temp88(1:nttin)*fpolin
       
       return 

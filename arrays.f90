@@ -572,6 +572,7 @@ contains
 !        tpsi(i)=1.0d0-real(i)/(ntpsi+1)
 !        tpsi(i)=1.0d0-real(2*i-1)/(2*ntpsi)
         trho(i)=1.0d0/(ntpsi-1)*(i-1)
+!        trho(i)=1.0d0/(ntpsi)*real(i) !JPL:remove psi=0
      end do
      do j=1,nttin
         ttin(j)=8.0d0*datan(1.0d0)/nttin*(j-1)             
